@@ -28,44 +28,52 @@ The handshake is **not authenticated**. An active attacker between client and se
 
 ## Install
 
-### macOS (one-shot script)
+`liboqs-python` is a `ctypes` wrapper, so it needs the **shared** liboqs library (`.dylib` on macOS, `.so` on Linux). Homebrew's `liboqs` formula installs only the static archive (`.a`), so on macOS we build liboqs from source.
+
+### macOS
 
 ```bash
-cd pq-secure-channel
-bash setup_liboqs.sh
-```
+# 1. Build dependencies.
+brew install cmake ninja openssl@3
 
-The script taps `open-quantum-safe/liboqs`, runs `brew install liboqs`, and — because the Homebrew formula installs only a static archive while `liboqs-python` needs a shared library — falls back to a source build at `~/.local/oqs` so the `.dylib` exists. It then creates `.venv`, `pip install -r requirements.txt`, exports `OQS_INSTALL_PATH`, and probes the resulting build.
-
-For future shells, add to your `~/.zshrc`:
-
-```bash
-export OQS_INSTALL_PATH="$HOME/.local/oqs"
-export DYLD_LIBRARY_PATH="$OQS_INSTALL_PATH/lib:$DYLD_LIBRARY_PATH"
-```
-
-### Manual install (any OS)
-
-```bash
-# Build liboqs from source as a shared library.
-git clone --depth=1 https://github.com/open-quantum-safe/liboqs.git
-cd liboqs && mkdir build && cd build
+# 2. Build liboqs as a shared library and install to ~/.local/oqs.
+git clone --depth=1 https://github.com/open-quantum-safe/liboqs.git ~/src/liboqs
+cd ~/src/liboqs && mkdir build && cd build
 cmake -GNinja -DCMAKE_INSTALL_PREFIX="$HOME/.local/oqs" \
               -DOQS_BUILD_ONLY_LIB=ON \
               -DBUILD_SHARED_LIBS=ON ..
 ninja && ninja install
-export OQS_INSTALL_PATH="$HOME/.local/oqs"
 
-# Python deps.
+# 3. Tell liboqs-python where the dylib lives.
+export OQS_INSTALL_PATH="$HOME/.local/oqs"
+export DYLD_LIBRARY_PATH="$OQS_INSTALL_PATH/lib:$DYLD_LIBRARY_PATH"
+
+# 4. Python deps.
 cd /path/to/pq-secure-channel
 python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
+
+# 5. Sanity check.
+python3 -c "import oqs; print('ML-KEM-768' in oqs.get_enabled_kem_mechanisms(), 'BIKE-L3' in oqs.get_enabled_kem_mechanisms())"
+# Expected: True True
 ```
 
-If `liboqs-python` from PyPI lags behind your liboqs version, install from upstream:
+For future shells, add the two `export` lines to your `~/.zshrc`.
+
+### Linux
+
+Same steps as macOS, except:
+
+- Replace `brew install` with your package manager (e.g. `apt install cmake ninja-build libssl-dev`).
+- Replace `DYLD_LIBRARY_PATH` with `LD_LIBRARY_PATH`.
+
+### If `liboqs-python` lags behind liboqs
+
+The PyPI build is occasionally a release behind. If `import oqs` warns about a version mismatch and a KEM you expect is missing, install from upstream against your already-built liboqs:
 
 ```bash
-pip install git+https://github.com/open-quantum-safe/liboqs-python.git
+pip install --no-build-isolation \
+    git+https://github.com/open-quantum-safe/liboqs-python.git
 ```
 
 ## Run
