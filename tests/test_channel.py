@@ -1,6 +1,6 @@
 """
+Test:
 Pytest suite for SecureChannel.
-
 
 Required cases (project spec):
 - test_correct_decryption: roundtrip plaintext == ciphertext after channel decrypts.
