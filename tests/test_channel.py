@@ -1,6 +1,7 @@
 """
 Pytest suite for SecureChannel.
 
+
 Required cases (project spec):
 - test_correct_decryption: roundtrip plaintext == ciphertext after channel decrypts.
 - test_modified_ciphertext_rejected: flipping a byte in the GCM ciphertext or tag fails.
